@@ -1,0 +1,18 @@
+import { Outlet } from 'react-router-dom';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
+import './Layout.css';
+
+export default function MainLayout() {
+  return (
+    <div className="app-container">
+      <Sidebar />
+      <div className="main-content">
+        <Navbar />
+        <main className="page-wrapper">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
