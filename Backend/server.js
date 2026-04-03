@@ -9,7 +9,7 @@ app.use(express.json());
 // ✅ CONNECT TO DB (with DB name)
 mongoose.connect("mongodb://127.0.0.1:27017/retrySystem");
 
-// ================= SCHEMA =================
+//SCHEMA
 const jobSchema = new mongoose.Schema({
   jobId: String,
   service: String,
@@ -38,7 +38,7 @@ const jobSchema = new mongoose.Schema({
 
 const Job = mongoose.model("Job", jobSchema);
 
-// ================= HELPERS =================
+//HELPERS
 function getBackoffDelay(baseDelay, retryCount) {
   let delay = baseDelay * Math.pow(2, retryCount);
 
@@ -56,7 +56,7 @@ function formatNextRetry(date) {
   return `in ${Math.floor(diff / 60)} mins`;
 }
 
-// ================= APIs =================
+//APIs
 
 // CREATE JOB (dynamic input)
 app.post("/jobs", async (req, res) => {
@@ -170,7 +170,7 @@ app.post("/backoff", (req, res) => {
   res.json(data);
 });
 
-// ================= WORKER =================
+//WORKER
 async function worker() {
   const jobs = await Job.find({
     status: "Retrying",
@@ -233,7 +233,7 @@ async function worker() {
 // run worker
 setInterval(worker, 3000);
 
-// ================= START =================
+//START
 app.listen(5000, () => {
   console.log("🚀 Backend running on http://localhost:5000");
 });
