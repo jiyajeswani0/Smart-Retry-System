@@ -3,12 +3,8 @@ import { LayoutDashboard, ListTodo, Activity, Power, Archive, Settings, Calendar
 import './Layout.css';
 
 const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/jobs', label: 'Jobs Table', icon: ListTodo },
   { path: '/backoff', label: 'Backoff Viz', icon: Activity },
-  { path: '/queue', label: 'Queue View', icon: Archive },
-  { path: '/policy', label: 'Policy Settings', icon: Settings },
-  { path: '/scheduler', label: 'Scheduler', icon: Calendar },
 ];
 
 export default function Sidebar() {

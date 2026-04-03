@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import './Pages.css';
 
 export default function BackoffVisualizer() {
-  const [baseDelay, setBaseDelay] = useState(1); // seconds
+  const [baseDelay, setBaseDelay] = useState(1);
   const [maxRetries, setMaxRetries] = useState(8);
   const [jitter, setJitter] = useState(false);
 
@@ -99,7 +99,7 @@ export default function BackoffVisualizer() {
                 </label>
             </div>
             
-            {/* Adding toggle switch CSS directly here for simplicity, or we can put it in pages.css */}
+            
             <style jsx>{`
             .toggle-switch {
               position: relative;
