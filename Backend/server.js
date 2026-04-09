@@ -1,52 +1,13 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
+const Job = require('./jobModel');
 const app = express();
+const worker = require('./worker');
 app.use(cors());
 app.use(express.json());
 
-// ✅ CONNECT TO DB (with DB name)
 mongoose.connect("mongodb://127.0.0.1:27017/retrySystem");
-
-//SCHEMA
-const jobSchema = new mongoose.Schema({
-  jobId: String,
-  service: String,
-  status: String,
-  retryCount: { type: Number, default: 0 },
-  maxRetries: { type: Number, default: 5 },
-  baseDelay: { type: Number, default: 1 },
-  nextRetryAt: Date,
-  payload: Object,
-
-  errorLog: [
-    {
-      message: String,
-      timestamp: Date,
-    }
-  ],
-
-  timeline: [
-    {
-      attempt: Number,
-      status: String,
-      time: Date,
-    }
-  ]
-});
-
-const Job = mongoose.model("Job", jobSchema);
-
-//HELPERS
-function getBackoffDelay(baseDelay, retryCount) {
-  let delay = baseDelay * Math.pow(2, retryCount);
-
-  const jitter = delay * 0.5 * (Math.random() * 2 - 1);
-  delay = Math.max(0.1, delay + jitter);
-
-  return delay * 1000;
-}
 
 function formatNextRetry(date) {
   if (!date) return "N/A";
@@ -169,66 +130,6 @@ app.post("/backoff", (req, res) => {
 
   res.json(data);
 });
-
-//WORKER
-async function worker() {
-  const jobs = await Job.find({
-    status: "Retrying",
-    nextRetryAt: { $lte: new Date() }
-  });
-
-  for (let job of jobs) {
-
-    if (job.retryCount >= job.maxRetries) {
-      job.status = "Failed";
-      job.nextRetryAt = null;
-      await job.save();
-      continue;
-    }
-
-    try {
-      const success = Math.random() > 0.5;
-
-      if (success) {
-        job.status = "Success";
-        job.nextRetryAt = null;
-
-        job.timeline.push({
-          attempt: job.retryCount,
-          status: "Success",
-          time: new Date()
-        });
-
-      } else {
-        throw new Error("Gateway Timeout (504)");
-      }
-
-    } catch (err) {
-      job.retryCount += 1;
-
-      job.errorLog.push({
-        message: err.message,
-        timestamp: new Date()
-      });
-
-      job.timeline.push({
-        attempt: job.retryCount,
-        status: "Failed",
-        time: new Date()
-      });
-
-      if (job.retryCount >= job.maxRetries) {
-        job.status = "Failed";
-        job.nextRetryAt = null;
-      } else {
-        const delay = getBackoffDelay(job.baseDelay, job.retryCount);
-        job.nextRetryAt = new Date(Date.now() + delay);
-      }
-    }
-
-    await job.save();
-  }
-}
 
 // run worker
 setInterval(worker, 3000);
