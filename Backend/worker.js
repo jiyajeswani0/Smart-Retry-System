@@ -67,5 +67,3 @@ async function worker() {
     await job.save();
   }
 }
-
-module.exports = worker;
