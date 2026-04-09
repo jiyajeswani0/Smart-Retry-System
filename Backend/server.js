@@ -17,8 +17,6 @@ function formatNextRetry(date) {
   return `in ${Math.floor(diff / 60)} mins`;
 }
 
-//APIs
-
 // CREATE JOB (dynamic input)
 app.post("/jobs", async (req, res) => {
   const { service, payload, maxRetries, baseDelay } = req.body;

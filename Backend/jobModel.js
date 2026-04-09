@@ -26,5 +26,4 @@ const jobSchema = new mongoose.Schema({
   ]
 });
 
-// ✅ IMPORTANT
 module.exports = mongoose.model('Job', jobSchema);
