@@ -2,12 +2,17 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const Job = require('./jobModel');
-const app = express();
+const FailedJob = require('./failedModel');
 const worker = require('./worker');
+
+const app = express();
+
 app.use(cors());
 app.use(express.json());
 
 mongoose.connect("mongodb://127.0.0.1:27017/retrySystem");
+
+// HELPER
 
 function formatNextRetry(date) {
   if (!date) return "N/A";
@@ -17,9 +22,8 @@ function formatNextRetry(date) {
   return `in ${Math.floor(diff / 60)} mins`;
 }
 
-//APIs
+//CREATE JOB
 
-// CREATE JOB (dynamic input)
 app.post("/jobs", async (req, res) => {
   const { service, payload, maxRetries, baseDelay } = req.body;
 
@@ -46,7 +50,8 @@ app.post("/jobs", async (req, res) => {
   res.json(job);
 });
 
-// GET ALL JOBS
+//GET ALL JOBS
+
 app.get("/jobs", async (req, res) => {
   const jobs = await Job.find();
 
@@ -61,14 +66,15 @@ app.get("/jobs", async (req, res) => {
   res.json(formatted);
 });
 
-// GET FAILED JOBS (DLQ)
+// GET FAILED JOBS
+
 app.get("/jobs/failed", async (req, res) => {
-  const jobs = await Job.find({ status: "Failed" });
+  const jobs = await FailedJob.find();
 
   const formatted = jobs.map(j => ({
     id: j.jobId,
     service: j.service,
-    status: j.status,
+    status: "Failed",
     count: j.retryCount,
     nextRetry: "N/A"
   }));
@@ -76,7 +82,8 @@ app.get("/jobs/failed", async (req, res) => {
   res.json(formatted);
 });
 
-// GET SINGLE JOB
+//GET SINGLE JOB
+
 app.get("/jobs/:id", async (req, res) => {
   const job = await Job.findOne({ jobId: req.params.id });
 
@@ -85,7 +92,8 @@ app.get("/jobs/:id", async (req, res) => {
   res.json(job);
 });
 
-// RETRY JOB
+//RETRY ACTIVE JOB 
+
 app.post("/jobs/:id/retry", async (req, res) => {
   const job = await Job.findOne({ jobId: req.params.id });
 
@@ -95,16 +103,77 @@ app.post("/jobs/:id/retry", async (req, res) => {
   job.status = "Retrying";
 
   await job.save();
+
   res.json({ message: "Retry triggered" });
 });
 
-// DELETE JOB
+//DELETE JOB
+
 app.delete("/jobs/:id", async (req, res) => {
   await Job.deleteOne({ jobId: req.params.id });
   res.json({ message: "Job deleted" });
 });
 
-// BACKOFF VISUALIZER
+//RETRY FAILED (ALL / SELECTED)
+
+app.post("/jobs/failed/retry-all", async (req, res) => {
+  try {
+    const { jobIds } = req.body;
+
+    let failedJobs;
+
+    if (jobIds && jobIds.length > 0) {
+      // 🔹 Retry selected jobs
+      failedJobs = await FailedJob.find({ jobId: { $in: jobIds } });
+    } else {
+      // 🔹 Retry all jobs
+      failedJobs = await FailedJob.find();
+    }
+
+    const newJobs = [];
+
+    for (let job of failedJobs) {
+      const newJob = await Job.create({
+        jobId: "job-" + Math.random().toString(36).substring(2, 8),
+        service: job.service,
+        status: "Retrying",
+        retryCount: 0,
+        maxRetries: job.maxRetries,
+        baseDelay: job.baseDelay,
+        nextRetryAt: new Date(),
+        payload: job.payload,
+        errorLog: [],
+        timeline: [
+          {
+            attempt: 0,
+            status: "Re-triggered",
+            time: new Date()
+          }
+        ]
+      });
+
+      newJobs.push(newJob);
+    }
+
+    // Delete only processed jobs
+    if (jobIds && jobIds.length > 0) {
+      await FailedJob.deleteMany({ jobId: { $in: jobIds } });
+    } else {
+      await FailedJob.deleteMany();
+    }
+
+    res.json({
+      message: "Jobs re-added",
+      count: newJobs.length
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+//BACKOFF VISUALIZER
+
 app.post("/backoff", (req, res) => {
   const { baseDelay, maxRetries, jitter } = req.body;
 
@@ -131,10 +200,10 @@ app.post("/backoff", (req, res) => {
   res.json(data);
 });
 
-// run worker
+
 setInterval(worker, 3000);
 
-//START
+
 app.listen(5000, () => {
   console.log("🚀 Backend running on http://localhost:5000");
 });

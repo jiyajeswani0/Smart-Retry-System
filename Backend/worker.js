@@ -1,4 +1,5 @@
 const Job = require('./jobModel');
+const FailedJob = require('./failedModel');
 
 function getBackoffDelay(baseDelay, retryCount) {
   let delay = baseDelay * Math.pow(2, retryCount);
@@ -9,6 +10,23 @@ function getBackoffDelay(baseDelay, retryCount) {
   return delay * 1000;
 }
 
+async function moveToFailed(job) {
+  await FailedJob.create({
+    jobId: job.jobId,
+    service: job.service,
+    payload: job.payload,
+    retryCount: job.retryCount,
+    maxRetries: job.maxRetries,
+    baseDelay: job.baseDelay,
+    errorLog: job.errorLog,
+    timeline: job.timeline
+  });
+
+  await Job.deleteOne({ _id: job._id });
+
+  console.log(`Job ${job.jobId} moved to FailedJobs`);
+}
+
 async function worker() {
   const jobs = await Job.find({
     status: "Retrying",
@@ -16,13 +34,6 @@ async function worker() {
   });
 
   for (let job of jobs) {
-
-    if (job.retryCount >= job.maxRetries) {
-      job.status = "Failed";
-      job.nextRetryAt = null;
-      await job.save();
-      continue;
-    }
 
     try {
       const success = Math.random() > 0.5;
@@ -37,11 +48,14 @@ async function worker() {
           time: new Date()
         });
 
-      } else {
-        throw new Error("Gateway Timeout (504)");
+        await job.save();
+        continue;
       }
 
+      throw new Error("Gateway Timeout (504)");
+
     } catch (err) {
+
       job.retryCount += 1;
 
       job.errorLog.push({
@@ -55,16 +69,17 @@ async function worker() {
         time: new Date()
       });
 
-      if (job.retryCount >= job.maxRetries) {
-        job.status = "Failed";
-        job.nextRetryAt = null;
-      } else {
-        const delay = getBackoffDelay(job.baseDelay, job.retryCount);
-        job.nextRetryAt = new Date(Date.now() + delay);
-      }
-    }
 
-    await job.save();
+      if (job.retryCount >= job.maxRetries) {
+        await moveToFailed(job);
+        continue;
+      }
+
+      const delay = getBackoffDelay(job.baseDelay, job.retryCount);
+      job.nextRetryAt = new Date(Date.now() + delay);
+
+      await job.save();
+    }
   }
 }
 
