@@ -1,70 +1,52 @@
-# 🚀 Smart Retry Coordinator – Frontend
+# ⚛️ Smart Retry Coordinator – Frontend
 
-A modern React-based frontend for the **Smart Retry Coordinator System**, built using Vite for fast performance and smooth development.
-
----
+A modern React dashboard for monitoring and managing the **Smart Retry Coordinator** system.
 
 ## 📌 Overview
 
-This frontend provides an interface to interact with the Smart Retry Coordinator backend system, which intelligently handles failed requests using retry mechanisms like exponential backoff and circuit breakers.
-
----
+The frontend allows users to:
+- Monitor jobs in real-time.
+- View detailed job execution timelines and error logs.
+- Visualize exponential backoff strategies with an interactive simulator.
+- Manually manage failed jobs.
 
 ## ⚙️ Tech Stack
 
-* ⚛️ React (Vite)
-* 🎨 HTML, CSS
-* 🔄 Axios / Fetch API
-* ⚡ Vite (for fast builds & HMR)
-
----
-
+- **Framework**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+- **Routing**: React Router DOM
+- **HTTP Client**: Axios
+- **Icons**: Lucide React
+- **Charts**: Recharts
+- **Styling**: CSS
 
 ## 📁 Project Structure
 
+```text
+Frontend/
+├── src/
+│   ├── components/  # Reusable UI components
+│   ├── pages/       # Page-level components (JobsTable, JobDetails, etc.)
+│   ├── App.jsx      # Main routing configuration
+│   └── main.jsx     # Entry point
+├── public/          # Static assets
+└── vite.config.js   # Vite configuration
 ```
-frontend/
-│── src/
-│   ├── components/
-│   ├── pages/
-│   ├── App.jsx
-│   ├── main.jsx
-│── public/
-│── package.json
-│── vite.config.js
-```
-
----
 
 ## 🚀 Getting Started
 
 ### 1️⃣ Install dependencies
-
 ```bash
 npm install
 ```
 
 ### 2️⃣ Run development server
-
 ```bash
 npm run dev
 ```
 
-### 3️⃣ Build for production
+The app will be available at `http://localhost:5173`.
 
+### 3️⃣ Build for production
 ```bash
 npm run build
 ```
-
----
-
-
--
-
-
-
-
-
-
-
-# Smart-Retry-System
